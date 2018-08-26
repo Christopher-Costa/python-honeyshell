@@ -1,6 +1,7 @@
 #! /usr/bin/python3
 
 import pickle
+import sys
 import _thread as thread
 from honeyshell.core.socket import HoneyshellSocket
 from honeyshell.core.session import HoneyshellSession
@@ -13,6 +14,10 @@ class HoneyshellServer:
 
     def start(self):
         while True:
-            connection, address = self.socket.socket.accept()
-            ssh_connection = HoneyshellSession(connection, address, self)
-            thread.start_new_thread(ssh_connection.open, ())
+            try:
+                connection, address = self.socket.socket.accept()
+                ssh_connection = HoneyshellSession(connection, address, self)
+                thread.start_new_thread(ssh_connection.open, ())
+            except KeyboardInterrupt:
+                print("Honeyshell terminated by user")
+                sys.exit()
