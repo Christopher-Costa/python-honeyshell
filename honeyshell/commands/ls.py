@@ -39,6 +39,9 @@ class Ls:
         files = self.filelist()
         rows = 0
 
+        if not files:
+            return
+
         while True:
             rows += 1
             columns = [sorted(files, key=self.sortname)[x:x + rows] for x in range(0, len(files), rows)]
@@ -81,14 +84,17 @@ class Ls:
         blocks = int(sum([file['blocks'] for file in files]) * 512 / self.blocksize)
         self.shell.channel.send('total ' + str(blocks) + '\r\n')
 
+        if not files:
+            return
+
         links_len = len(str(max([file['nlink'] for file in files])))
         links_format = '%' + str(links_len) + 's '
 
         user_len = len(max([file['user'] for file in files], key=len))
-        user_format = '%' + str(user_len) + 's '
+        user_format = '%-' + str(user_len) + 's '
 
         group_len = len(max([file['group'] for file in files], key=len))
-        group_format = '%' + str(group_len) + 's '
+        group_format = '%-' + str(group_len) + 's '
 
         for file in sorted(files, key=self.sortname):
             self.shell.channel.send(self.long_mode(file) + ' ')
