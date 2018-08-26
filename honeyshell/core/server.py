@@ -22,4 +22,4 @@ class HoneyshellServer:
 
             except KeyboardInterrupt:
                 print("Honeyshell terminated by user...")
-                sys.exit()
+                break
