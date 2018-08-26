@@ -15,7 +15,7 @@ class Cd:
         optlist, args = getopt.getopt(self.args, 'LP', [])
 
         if args:
-            self.target = args[0]
+            self.target = args[0].rstrip('/')
         else:
             self.target = self.shell.home
 
