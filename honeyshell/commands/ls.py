@@ -3,6 +3,7 @@
 import getopt
 import os
 import time
+import pprint
 
 class Ls:
 
@@ -50,8 +51,8 @@ class Ls:
 
             for column in columns:
                 filenames = [file['name'] for file in column]
-                max_filenames.append(max(filenames))
-
+                max_filenames.append(max(filenames, key=len))
+            
             if len(('  ').join(max_filenames)) <= self.shell.process.width:
                 break
 
@@ -76,7 +77,7 @@ class Ls:
             self.shell.channel.send(line + '\r\n')
 
     def sortname(self, item):
-        return item['name'].strip('.')
+        return item['name'].strip('.').lower()
 
     def long_list(self):
         files = self.filelist()
