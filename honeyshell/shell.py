@@ -17,8 +17,6 @@ class HoneyshellShell:
         self.filesystem = server.filesystem
         self.history = []
         self.open = True
-        self.dir_color = '\x1b[38;5;27m'
-        self.default_color = '\x1b[0m'
 
         while True:
             command = ''
