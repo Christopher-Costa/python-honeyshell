@@ -20,6 +20,7 @@ class HoneyshellShell:
         self.filesystem = server.filesystem
         self.history = []
         self.session_open = True
+        self.last_char_tab = False
 
         self.command = ''
         self.specials = ''
@@ -289,13 +290,13 @@ class HoneyshellShell:
     def handle_up_arrow(self):
         if len(self.history) + self.hposition > 0:
             self.hposition -= 1
-            self.command = self.history[hposition]
-            self.position = len(command)
+            self.command = self.history[self.hposition]
+            self.position = len(self.command)
 
     def handle_down_arrow(self):
         if self.hposition < -1:
             self.hposition += 1
-            self.command = self.history[hposition]
+            self.command = self.history[self.hposition]
             self.position = len(self.command)
 
     def handle_right_arrow(self):
@@ -316,11 +317,64 @@ class HoneyshellShell:
             self.command = command[:position] + command[position+1:]
             self.specials += self.cursor_right()
 
+    def handle_tab(self):
+        fs = self.filesystem
+
+        # Need to find the word the cursor is on...
+        string_start = self.command.rfind(' ', 0, self.position) + 1
+        string = self.command[string_start: self.position]
+
+        # If there are any / that means we're actually looking in a subdirectory
+        object_start = string.rfind('/') + 1
+        rel_path = string[ :object_start ]
+        rel_obj  = string[object_start: ]
+
+        if string.startswith('/'):
+            search_path = rel_path.rstrip('/') or '/'
+        else:
+            search_path = self.cwd
+            if rel_path:
+                search_path += "/" + rel_path.rstrip('/')
+
+        if string_start == 0:
+            # TODO: This means we're looking for a command
+            #       somewhere in the PATH
+            pass
+
+        else:
+            all_files = [ fs[filename] for filename in fs if fs[filename]['root'] == search_path ]
+            matching_files = list(filter(lambda file: file['name'].startswith(rel_obj), all_files))
+
+            # If no matches, just move on
+            if not matching_files:
+                pass
+
+            #If there is exactly one match, just fill it in
+            elif len(matching_files) == 1:
+                command  = self.command[:string_start + object_start] 
+                command += matching_files[0]['name']
+                if matching_files[0]['isdir']:
+                    command += '/'
+                command += self.command[self.position:]
+
+                self.position += len(command) - len(self.command)
+                self.command = command    
+
+            # TODO: More than one match. Repeated tab
+            elif self.last_char_tab:
+                pass
+
+            # More than one match.  First tab.
+            else:
+                self.last_char_tab = True;
+                
+
     def handle_character(self, character):
 
         handlers = {
             b'\x7f'    : self.handle_backspace ,
             b'\r'      : self.handle_return ,
+            b'\t'      : self.handle_tab,
             b'\x1b[A'  : self.handle_up_arrow ,
             b'\x1b[B'  : self.handle_down_arrow ,
             b'\x1b[C'  : self.handle_right_arrow ,
@@ -332,5 +386,6 @@ class HoneyshellShell:
             handlers[character]()
 
         else:
-            self.command += character.decode()
+            command = self.command[:self.position] + character.decode() + self.command[self.position:]
+            self.command = command
             self.position += 1
