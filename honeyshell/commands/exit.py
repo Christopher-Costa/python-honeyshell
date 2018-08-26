@@ -12,7 +12,7 @@ class Exit:
         self.execute()
 
     def parse_args(self):
-        optlist, args = getopt.getopt(self.args, 'LP', [])
+        optlist, args = getopt.getopt(self.args, '', [])
 
         if args:
             self.status = args[0]
