@@ -3,10 +3,12 @@
 import paramiko
 from paramiko.py3compat import b, u, decodebytes
 import sys
-from honeyshell.commands.ls import Ls
-from honeyshell.commands.cd import Cd
+from honeyshell.commands.ls   import Ls
+from honeyshell.commands.cd   import Cd
+from honeyshell.commands.exit import Exit
 
 class HoneyshellShell:
+
 
     def __init__(self, connection, channel, server, process):
         self.who = 'root'
@@ -17,116 +19,28 @@ class HoneyshellShell:
         self.process = process
         self.filesystem = server.filesystem
         self.history = []
-        self.open = True
+        self.session_open = True
+
+        self.command = ''
+        self.specials = ''
+        self.position = 0
+        self.hposition = -1
 
         while True:
-            command = ''
-            specials = ''
-            position = 0
-            hposition = -1
-
-            if not self.open:
-                break
+            if not self.session_open: break
 
             self.prompt()
+
             while True:
+                character = self.next_character()
+                self.handle_character(character)
 
-                char = self.channel.recv(1)
-
-                ###
-                # Backspace
-                ###
-                if ord(char) == 127:
-                    if position > 0:
-                        c = command
-                        command = c[:position - 1] + c[position:]
-                        position -= 1
-
-                ###
-                # Return
-                ###
-                elif ord(char) == 13:
-                    self.update_history(command)
-                    self.channel.send('\r\n')
-                    self.run_command(command)
-
-                    position = 0
-                    hposition = 0
-                    command = ''
-                    specials = ''
-
-                ###
-                # Escape
-                ###
-                elif ord(char) == 27:
-                    char2 = self.channel.recv(1)
-
-                    ###
-                    # [
-                    ###
-                    if ord(char2) == 91:
-                        char3 = self.channel.recv(1)
-
-                        ###
-                        # 3
-                        ###
-                        if ord(char3) == 51:
-                            char4 = self.channel.recv(1)
-
-                            ###
-                            # Delete
-                            ###
-                            if ord(char4) == 126:
-                                if position < len(command):
-                                    c = command
-                                    command = c[:position] + c[position+1:]
-                                    specials += self.cursor_right()
-
-                        ###
-                        # Up Arrow
-                        ###
-                        elif ord(char3) == 65:
-                            if len(self.history) + hposition > 0:
-                                hposition -= 1
-                                command = self.history[hposition]
-                                position = len(command)
-
-                        ###
-                        # Down Arrow
-                        ###
-                        elif ord(char3) == 66:
-                            if hposition < -1:
-                                hposition += 1
-                                command = self.history[hposition]
-                                position = len(command)
-
-                        ###
-                        # Right Arrow
-                        ###
-                        elif ord(char3) == 67:
-                            if position < len(command):
-                                specials += self.cursor_right()
-                                position += 1
-  
-                        ###
-                        # Left Arrow
-                        ###
-                        elif ord(char3) == 68:
-                            if position > 0:
-                                specials += self.cursor_left()
-                                position -= 1
-
-                else:
-                    command += char.decode()
-                    position += 1
-
-                if not self.open:
-                    break
+                if not self.session_open: break
 
                 self.channel.send('\r\x1b[K')
                 self.prompt()
-                self.channel.send(command)
-                self.channel.send(specials)
+                self.channel.send(self.command)
+                self.channel.send(self.specials)
 
     def cursor_right(self):
         return '\x1b[C'
@@ -170,15 +84,15 @@ class HoneyshellShell:
             return
         parts = command.split()
         if parts[0] == 'exit':
-            self.channel.close()
-            self.open = False
+            Exit(parts[1:], self)
+        elif parts[0] == 'ls':
+            Ls(parts[1:], self)
+        elif parts[0] == 'cd':
+            Cd(parts[1:], self)
         else:
-            if parts[0] == 'ls':
-                Ls(parts[1:], self)
-            elif parts[0] == 'cd':
-                Cd(parts[1:], self)
-            else:
-                self.channel.send('-bash: ' + parts[0] + ': command not found\n')
+            self.channel.send('-bash: ' + parts[0] + ': command not found\n')
+
+    
 
     def colorize(self, file):
         if file['isdir']:
@@ -335,3 +249,84 @@ class HoneyshellShell:
             return '\x1b[38;5;45m' + file['name'] + '\x1b[0m'
 
         return file['name']
+
+    def next_character(self):
+        character = self.channel.recv(1)
+
+        if ( hex(character[-1]) == '0x1b' ):
+            character += self.channel.recv(1)
+
+            if ( hex(character[-1]) == '0x5b' ):
+                character += self.channel.recv(1)
+
+                if ( hex(character[-1]) == '0x33' ):
+                    character += self.channel.recv(1)
+
+        return character
+
+    def handle_backspace(self):            
+        if self.position > 0:
+            command  = self.command
+            position = self.position
+
+            self.command = command[:position - 1] + command[position:]
+            self.position -= 1
+
+    def handle_return(self):
+        self.update_history(self.command)
+        self.channel.send('\r\n')
+        self.run_command(self.command)
+
+        self.position = 0
+        self.hposition = 0
+        self.command = ''
+        self.specials = ''
+
+    def handle_up_arrow(self):
+        if len(self.history) + self.hposition > 0:
+            self.hposition -= 1
+            self.command = self.history[hposition]
+            self.position = len(command)
+
+    def handle_down_arrow(self):
+        if self.hposition < -1:
+            self.hposition += 1
+            self.command = self.history[hposition]
+            self.position = len(self.command)
+
+    def handle_right_arrow(self):
+        if self.position < len(self.command):
+            self.specials += self.cursor_right()
+            self.position += 1
+  
+    def handle_left_arrow(self):
+        if self.position > 0:
+            self.specials += self.cursor_left()
+            self.position -= 1
+
+    def handle_delete(self):
+        if self.position < len(self.command):
+            command  = self.command
+            position = self.position
+
+            self.command = command[:position] + command[position+1:]
+            self.specials += self.cursor_right()
+
+    def handle_character(self, character):
+
+        handlers = {
+            b'\x7f'    : self.handle_backspace ,
+            b'\r'      : self.handle_return ,
+            b'\x1b[A'  : self.handle_up_arrow ,
+            b'\x1b[B'  : self.handle_down_arrow ,
+            b'\x1b[C'  : self.handle_right_arrow ,
+            b'\x1b[D'  : self.handle_left_arrow ,
+            b'\x1b[3~' : self.handle_delete
+        }
+
+        if character in handlers:
+            handlers[character]()
+
+        else:
+            self.command += character.decode()
+            self.position += 1
