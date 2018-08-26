@@ -80,19 +80,23 @@ class HoneyshellShell:
             return '$'
 
     def run_command(self, command):
+
+        handlers = {
+            'exit' : Exit ,
+            'ls'   : Ls ,
+            'cd'   : Cd 
+        }
+
         if not command:
             return
+
         parts = command.split()
-        if parts[0] == 'exit':
-            Exit(parts[1:], self)
-        elif parts[0] == 'ls':
-            Ls(parts[1:], self)
-        elif parts[0] == 'cd':
-            Cd(parts[1:], self)
+
+        if parts[0] in handlers:
+            handlers[parts[0]](parts[1:], self)
+
         else:
             self.channel.send('-bash: ' + parts[0] + ': command not found\n')
-
-    
 
     def colorize(self, file):
         if file['isdir']:
