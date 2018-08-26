@@ -21,7 +21,9 @@ class HoneyshellSession:
         ssh_session.add_server_key(paramiko.RSAKey(filename='keys/user_rsa_key'))
         ssh_session.start_server(server=self.process)
 
+        print ("Honeyshell session established...")
         channel = ssh_session.accept(20)
         self.process.event.wait(10)
 
         HoneyshellShell(ssh_session, channel, self.server, self.process)
+        print ("Honeyshell session disconnected...")
