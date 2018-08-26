@@ -31,10 +31,10 @@ class Cd:
         else:
             directory_path = self.shell.cwd + '/' + self.target
                                 
-        if fs[directory_path]:
+        if directory_path in fs:
             if fs[directory_path]['isdir']:
                 self.shell.cwd = directory_path
             else:
-                self.shell.channel.send("-bash: cd: " + self.target + ": Not a directory")
+                self.shell.channel.send("-bash: cd: " + self.target + ": Not a directory\n")
         else:
-            self.shell.channel.send("-bash: cd: " + self.target + ": No such file or directory")
+            self.shell.channel.send("-bash: cd: " + self.target + ": No such file or directory\n")
