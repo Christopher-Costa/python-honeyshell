@@ -2,6 +2,7 @@
 
 import getopt
 import os
+import time
 
 class Ls:
 
@@ -13,6 +14,7 @@ class Ls:
         self.show_timesort = False
         self.show_reverse = False
         self.blocksize = 1024
+        self.time_format = 'locale'
 
         self.parse_args()
 
@@ -93,7 +95,18 @@ class Ls:
             self.shell.channel.send(links_format % str(file['nlink']))
             self.shell.channel.send(user_format % str(file['user']))
             self.shell.channel.send(group_format % str(file['group']))
+            self.shell.channel.send(self.timestamp(file) + ' ')
             self.shell.channel.send(self.shell.colorize(file) + '\r\n')
+
+    def timestamp(self, file):
+        if (self.time_format == 'locale'):
+            now = time.time()        
+
+            # Files within the last 6 months show time instead of year
+            if now - file['mtime'] <= 15780000:            
+                return time.strftime('%b %e %H:%M', time.gmtime(file['mtime']))
+            else:
+                return time.strftime('%b %e  %Y', time.gmtime(file['mtime']))
 
     def filelist(self):
         fs = self.shell.filesystem
