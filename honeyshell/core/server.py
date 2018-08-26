@@ -13,11 +13,13 @@ class HoneyshellServer:
         self.socket = HoneyshellSocket(port=2200)
 
     def start(self):
+        print ("Honeyshell started...")
         while True:
             try:
                 connection, address = self.socket.socket.accept()
                 ssh_connection = HoneyshellSession(connection, address, self)
                 thread.start_new_thread(ssh_connection.open, ())
+
             except KeyboardInterrupt:
-                print("Honeyshell terminated by user")
+                print("Honeyshell terminated by user...")
                 sys.exit()
