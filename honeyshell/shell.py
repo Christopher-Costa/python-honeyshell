@@ -3,6 +3,7 @@
 import paramiko
 from paramiko.py3compat import b, u, decodebytes
 import sys
+import time
 from honeyshell.commands.ls   import Ls
 from honeyshell.commands.cd   import Cd
 from honeyshell.commands.exit import Exit
@@ -10,14 +11,15 @@ from honeyshell.commands.exit import Exit
 class HoneyshellShell:
 
 
-    def __init__(self, connection, channel, server, process):
+    def __init__(self, connection, channel, session, server, process):
         self.who = 'root'
         self.cwd = '/root'
         self.home = '/root'
         self.connection = connection
         self.channel = channel
+        self.session = session
         self.process = process
-        self.filesystem = server.filesystem
+        self.server = server
         self.history = []
         self.session_open = True
         self.last_char_tab = False
@@ -30,6 +32,8 @@ class HoneyshellShell:
         while True:
             if not self.session_open: break
 
+            self.failed_login_banner()
+            self.last_login_banner()
             self.prompt()
 
             while True:
@@ -42,6 +46,40 @@ class HoneyshellShell:
                 self.prompt()
                 self.channel.send(self.command)
                 self.channel.send(self.specials)
+
+    def last_login_banner(self):
+
+        if self.server.last_login_time:
+            self.channel.send('Last login: ')
+            self.channel.send( time.strftime('%a %b %d %H:%M:%S %Y', time.localtime(self.server.last_login_time)) )
+            self.channel.send(' from ' )
+            self.channel.send( self.server.last_login_addr )
+            self.channel.send("\r\n")
+
+        self.server.last_login_time = time.time()
+        self.server.last_login_addr = self.session.address[0]
+
+    def failed_login_banner(self):
+        if self.server.last_failed_time:
+            self.channel.send('Last failed login: ')
+            self.channel.send( time.strftime('%a %b %d %H:%M:%S %Z %Y', time.localtime(self.server.last_failed_time)) )
+            self.channel.send(' from ')
+            self.channel.send( self.server.last_failed_addr )
+            self.channel.send(' on ssh:notty')
+            self.channel.send("\r\n")
+
+            self.channel.send('There ')
+            if self.server.num_failed == 1:
+                self.channel.send('was ')
+            else:
+                self.channel.send('were ')
+            self.channel.send( str(self.server.num_failed) )
+            self.channel.send(' failed login attempts since the last successful login.')
+            self.channel.send("\r\n")
+
+            self.server.last_failed_time = 0
+            self.server.last_failed_addr = ''
+            self.server.num_failed = 0  
 
     def clear_line(self):
         self.channel.send('\r\x1b[K')
@@ -339,7 +377,7 @@ class HoneyshellShell:
             self.specials += self.cursor_right()
 
     def handle_tab(self):
-        fs = self.filesystem
+        fs = self.server.filesystem
 
         # Need to find the word the cursor is on...
         string_start = self.command.rfind(' ', 0, self.position) + 1
@@ -414,7 +452,7 @@ class HoneyshellShell:
             self.position += 1
 
     def normalize_path(self, path):
-        fs = self.filesystem
+        fs = self.server.filesystem
                 
         if not path.startswith('/') and not path.startswith('~'):
             path = (self.cwd + '/' + path).rstrip('/')

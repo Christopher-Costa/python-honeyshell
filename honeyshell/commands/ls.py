@@ -116,7 +116,7 @@ class Ls:
                 return time.strftime('%b %e  %Y', time.gmtime(file['mtime']))
 
     def filelist(self):
-        fs = self.shell.filesystem
+        fs = self.shell.server.filesystem
         files = [fs[filename] for filename in fs if fs[filename]['root'] == self.shell.cwd]
 
         if self.show_all:

@@ -1,9 +1,11 @@
 import threading
 import paramiko
+import time
 
 class HoneyshellProcess:
 
-    def __init__(self):
+    def __init__(self, session):
+        self.session = session
         self.event = threading.Event()
 
     def check_channel_request(self, kind, chanid):
@@ -14,6 +16,11 @@ class HoneyshellProcess:
     def check_auth_password(self, username, password):
         if username == 'root' and password == 'root':
             return paramiko.AUTH_SUCCESSFUL
+
+        self.session.server.num_failed += 1
+        self.session.server.last_failed_time = time.time()
+        self.session.server.last_failed_addr = self.session.address[0]
+        time.sleep(2)
         return paramiko.AUTH_FAILED
 
     def check_auth_publickey(self, username, key):

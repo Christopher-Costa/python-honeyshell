@@ -20,7 +20,7 @@ class Cd:
             self.target = self.shell.home
 
     def execute(self):
-        fs = self.shell.filesystem
+        fs = self.shell.server.filesystem
 
         if self.target.startswith('/'):
             directory_path = self.target            

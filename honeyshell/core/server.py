@@ -11,6 +11,11 @@ class HoneyshellServer:
     def __init__(self):
         self.filesystem = pickle.load(open('fs/filesystem.p', 'rb'))
         self.socket = HoneyshellSocket(port=2200)
+        self.last_login_time = 0
+        self.last_login_addr = ''
+        self.last_failed_time = 0
+        self.last_failed_addr = ''
+        self.num_failed = 0
 
     def start(self):
         print ("Honeyshell started...")
