@@ -272,8 +272,23 @@ class HoneyshellShell:
 
                 if ( hex(character[-1]) == '0x33' ):
                     character += self.channel.recv(1)
-
         return character
+
+    def handle_ctrl_c(self):
+        self.channel.send('^C\r\n')
+
+        self.position = 0
+        self.hposition = 0
+        self.command = ''
+        self.specials = ''
+
+    def handle_ctrl_a(self):
+        self.specials = self.cursor_left() * len(self.command)
+        self.position = 0
+
+    def handle_ctrl_e(self):
+        self.specials = ''
+        self.position = len(self.command)
 
     def handle_backspace(self):            
         if self.position > 0:
@@ -374,12 +389,19 @@ class HoneyshellShell:
 
         handlers = {
             b'\x7f'    : self.handle_backspace ,
+            b'\x01'    : self.handle_ctrl_a ,
+            b'\x03'    : self.handle_ctrl_c ,
+            b'\x05'    : self.handle_ctrl_e ,
             b'\r'      : self.handle_return ,
             b'\t'      : self.handle_tab,
             b'\x1b[A'  : self.handle_up_arrow ,
+            b'\x10'    : self.handle_up_arrow ,
             b'\x1b[B'  : self.handle_down_arrow ,
+            b'\x0e'    : self.handle_down_arrow ,
             b'\x1b[C'  : self.handle_right_arrow ,
+            b'\x06'    : self.handle_right_arrow ,
             b'\x1b[D'  : self.handle_left_arrow ,
+            b'\x02'    : self.handle_left_arrow ,
             b'\x1b[3~' : self.handle_delete
         }
 
