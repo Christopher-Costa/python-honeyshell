@@ -38,10 +38,13 @@ class HoneyshellShell:
 
                 if not self.session_open: break
 
-                self.channel.send('\r\x1b[K')
+                self.clear_line()
                 self.prompt()
                 self.channel.send(self.command)
                 self.channel.send(self.specials)
+
+    def clear_line(self):
+        self.channel.send('\r\x1b[K')
 
     def cursor_right(self):
         return '\x1b[C'
@@ -98,6 +101,9 @@ class HoneyshellShell:
 
         else:
             self.channel.send('-bash: ' + parts[0] + ': command not found\n')
+
+        if not command == self.history[-1]:
+            self.history.append(command)
 
     def colorize(self, file):
         if file['isdir']:
@@ -388,17 +394,23 @@ class HoneyshellShell:
     def normalize_path(self, path):
         fs = self.filesystem
                 
-        if not path.startswith('/'):
+        if not path.startswith('/') and not path.startswith('~'):
             path = (self.cwd + '/' + path).rstrip('/')
 
         path_parts = path.split('/')
-
         new_path_parts = [] 
         for part in path_parts:
             if part == '.':
                 pass
             elif part == '..':
                 new_path_parts = new_path_parts[:-1]
+            elif part == '~':
+                cwd_parts = self.cwd.split('/')
+                for cwd_part in cwd_parts:
+                    if not cwd_part:
+                        pass
+                    else:
+                        new_path_parts.append(cwd_part) 
             elif not part:
                 pass
             else:
