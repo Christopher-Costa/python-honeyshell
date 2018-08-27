@@ -20,5 +20,7 @@ class Exit:
             self.status = 0
 
     def execute(self):
+        self.shell.channel.send("logout\n")
+        self.shell.clear_line()
         self.shell.channel.close()
         self.shell.session_open = False
