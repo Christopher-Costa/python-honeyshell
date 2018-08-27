@@ -329,12 +329,7 @@ class HoneyshellShell:
         rel_path = string[ :object_start ]
         rel_obj  = string[object_start: ]
 
-        if string.startswith('/'):
-            search_path = rel_path.rstrip('/') or '/'
-        else:
-            search_path = self.cwd
-            if rel_path:
-                search_path += "/" + rel_path.rstrip('/')
+        search_path = self.normalize_path(rel_path)
 
         if string_start == 0:
             # TODO: This means we're looking for a command
@@ -389,3 +384,24 @@ class HoneyshellShell:
             command = self.command[:self.position] + character.decode() + self.command[self.position:]
             self.command = command
             self.position += 1
+
+    def normalize_path(self, path):
+        fs = self.filesystem
+                
+        if not path.startswith('/'):
+            path = (self.cwd + '/' + path).rstrip('/')
+
+        path_parts = path.split('/')
+
+        new_path_parts = [] 
+        for part in path_parts:
+            if part == '.':
+                pass
+            elif part == '..':
+                new_path_parts = new_path_parts[:-1]
+            elif not part:
+                pass
+            else:
+                new_path_parts.append(part)
+
+        return '/' + '/'.join(new_path_parts)
