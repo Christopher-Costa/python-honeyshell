@@ -97,13 +97,44 @@ class Ls:
         group_len = len(max([file['group'] for file in files], key=len))
         group_format = '%-' + str(group_len) + 's '
 
+        size_len = len(max([str(file['size']) for file in files], key=len))
+        size_format = '%' + str(size_len) + 's '
+
         for file in sorted(files, key=self.sortname):
             self.shell.channel.send(self.long_mode(file) + ' ')
             self.shell.channel.send(links_format % str(file['nlink']))
             self.shell.channel.send(user_format % str(file['user']))
             self.shell.channel.send(group_format % str(file['group']))
+            self.shell.channel.send(size_format % str(file['size']))
             self.shell.channel.send(self.timestamp(file) + ' ')
-            self.shell.channel.send(self.shell.colorize(file) + '\r\n')
+            if file['islnk']:
+                target_file = self.target(file)
+                self.shell.channel.send(self.shell.colorize(file, orphan=not bool(target_file)))
+                self.shell.channel.send(' -> ')
+                self.shell.channel.send(self.shell.colorize(self.target(file), target=True, text=file['target']))
+            else:
+                self.shell.channel.send(self.shell.colorize(file))
+            self.shell.channel.send('\r\n')
+
+    def target(self, file):
+        fs = self.shell.server.filesystem
+
+        if file['target'].startswith('/'):
+            target_path = file['target'].split('/')
+        else:
+            target_path = '/'.join((file['root'], file['target'])).split('/')
+
+        while '..' in target_path:
+            index = target_path.index('..')
+            del target_path[index]
+            if index > 0:
+                del target_path[index-1]
+        
+        target = '/'.join(target_path)
+        if target in fs:
+            return fs[target]
+        else:
+            return None
 
     def timestamp(self, file):
         if (self.time_format == 'locale'):
