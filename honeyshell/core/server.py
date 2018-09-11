@@ -3,8 +3,8 @@
 import pickle
 import sys
 import _thread as thread
-from honeyshell.core.socket import HoneyshellSocket
-from honeyshell.core.session import HoneyshellSession
+from core.socket import HoneyshellSocket
+from core.session import HoneyshellSession
 
 class HoneyshellServer:
 
@@ -22,6 +22,7 @@ class HoneyshellServer:
         while True:
             try:
                 connection, address = self.socket.socket.accept()
+                print ("Honeyshell connection from {0}".format(address))
                 ssh_connection = HoneyshellSession(connection, address, self)
                 thread.start_new_thread(ssh_connection.open, ())
 
