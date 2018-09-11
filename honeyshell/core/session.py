@@ -2,8 +2,8 @@
 
 import paramiko
 import socket
-from honeyshell.core.process import HoneyshellProcess
-from honeyshell.shell import HoneyshellShell
+from core.process import HoneyshellProcess
+from core.shell import HoneyshellShell
 
 class HoneyshellSession:
 
@@ -14,11 +14,10 @@ class HoneyshellSession:
 
     def open(self):
         self.process = HoneyshellProcess(self)
-
         ssh_session = paramiko.Transport(self.connection)
-        ssh_session.set_gss_host(socket.getfqdn(''))
+        ssh_session.set_gss_host(socket.getfqdn())
         ssh_session.load_server_moduli()
-        ssh_session.add_server_key(paramiko.RSAKey(filename='keys/user_rsa_key'))
+        ssh_session.add_server_key(paramiko.RSAKey(filename='keys/id_rsa'))
         ssh_session.start_server(server=self.process)
 
         print ("Honeyshell session established...")
