@@ -1,6 +1,7 @@
 import threading
 import paramiko
 import time
+import textwrap
 
 class HoneyshellProcess:
 
@@ -40,6 +41,15 @@ class HoneyshellProcess:
 
     def enable_auth_gssapi(self):
         return True
+
+    def get_banner(self):
+        banner = textwrap.dedent("""\
+            Welcome to this wonderful SSH server.
+
+            Have a good time!
+            """)
+        language = 'en-US'
+        return (banner, language)
 
     def get_allowed_auths(self, username):
         return 'password'
