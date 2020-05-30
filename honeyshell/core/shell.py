@@ -38,14 +38,20 @@ class HoneyshellShell:
 
             while True:
                 character = self.next_character()
-                self.handle_character(character)
+                is_special = self.handle_character(character)
 
                 if not self.session_open: break
 
-                self.clear_line()
-                self.prompt()
-                self.channel.send(self.command)
-                self.channel.send(self.specials)
+                print("position: " + str(self.position))
+                print("length: " + str(len(self.command)))
+
+                if (self.position == len(self.command)) and not is_special:
+                    self.channel.send(character.decode())
+                else:
+                    self.clear_line()
+                    self.prompt()
+                    self.channel.send(self.command)
+                    self.channel.send(self.specials)
 
     def last_login_banner(self):
 
@@ -458,11 +464,13 @@ class HoneyshellShell:
 
         if character in handlers:
             handlers[character]()
+            return 1
 
         else:
             command = self.command[:self.position] + character.decode() + self.command[self.position:]
             self.command = command
             self.position += 1
+        return 0
 
     def normalize_path(self, path):
         fs = self.server.filesystem
