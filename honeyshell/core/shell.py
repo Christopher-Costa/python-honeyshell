@@ -42,9 +42,6 @@ class HoneyshellShell:
 
                 if not self.session_open: break
 
-                print("position: " + str(self.position))
-                print("length: " + str(len(self.command)))
-
                 if (self.position == len(self.command)) and not is_special:
                     self.channel.send(character.decode())
                 else:
